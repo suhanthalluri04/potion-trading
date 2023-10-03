@@ -51,19 +51,20 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    print(cart_checkout.payment)
-    # with db.engine.begin() as connection:
-    #   result = connection.execute(sqlalchemy.text("SELECT num_red_potions, gold FROM global_inventory"))
-    #   first_row = result.first()
-    #   if carts[cart_id][2] > first_row.num_red_ml:
-    #       raise HTTPException(status_code=400, detail="Not enough potions in stock.")
-    #   else:
-    #       connection.execute(sqlalchemy.text("UPDATE global_inventory, num_red_ml FROM global_inventory"))
-      
+    print("payment:",cart_checkout.payment)
+    with db.engine.begin() as connection:
+      result = connection.execute(sqlalchemy.text("SELECT num_red_potions, gold FROM global_inventory"))
+      first_row = result.first()
+      potionsBought = 0
+      moneyPaid = 0
+      if carts[cart_id][2] > first_row.num_red_potions:
+          raise HTTPException(status_code=400, detail="Not enough potions in stock.")
+      else:
+          potionsBought = carts[cart_id][2]
+          moneyPaid = int(cart_checkout.payment)
+          newPot = first_row.num_red_potions - carts[cart_id][2]
+          newGold = first_row.gold + int(cart_checkout.payment)
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {newPot}"))
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {newGold}"))
 
-
-
-
-
-    
-    return {"total_potions_bought": 1, "total_gold_paid": 50}
+    return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}
