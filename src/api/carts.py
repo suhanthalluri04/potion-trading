@@ -61,9 +61,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
           raise HTTPException(status_code=400, detail="Not enough potions in stock.")
       else:
           potionsBought = carts[cart_id][2]
-          moneyPaid = int(cart_checkout.payment)
+          moneyPaid = (50 * carts[cart_id][2])
           newPot = first_row.num_red_potions - carts[cart_id][2]
-          newGold = first_row.gold + int(cart_checkout.payment)
+          newGold = first_row.gold + moneyPaid
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {newPot}"))
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {newGold}"))
 
