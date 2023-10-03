@@ -52,9 +52,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             #only if the number of potions in inventory is less than 10. 
             if first_row.num_red_potions < 10 and first_row.gold > barrel.price:
               quantity = 1
-      return [
-          {
-              "sku": "SMALL_RED_BARREL",
-              "quantity": quantity,
-          }
-      ]
+      if quantity < 1:
+         return []
+      else:
+        return [
+            {
+                "sku": "SMALL_RED_BARREL",
+                "quantity": quantity,
+            }
+        ]

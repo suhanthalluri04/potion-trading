@@ -48,10 +48,12 @@ def get_bottle_plan():
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
     # Initial logic: bottle all barrels into red potions.
-
-    return [
-            {
-                "potion_type": [100, 0, 0, 0],
-                "quantity": quantity,
-            }
-        ]
+    if quantity < 1:
+       return []
+    else:
+      return [
+              {
+                  "potion_type": [100, 0, 0, 0],
+                  "quantity": quantity,
+              }
+          ]
