@@ -20,7 +20,8 @@ carts = []
 def create_cart(new_cart: NewCart):
     """ """
     #(customer name, SKU, quantity)
-    carts.append((new_cart.customer, 0, 0))
+    carts.append([new_cart.customer, 0, 0])
+    #new cart should be last cart in list
 
     return {"cart_id": len(carts) - 1}
 
