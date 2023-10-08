@@ -49,27 +49,31 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text("SELECT gold, num_red_potions, num_blue_potions, num_green_potions FROM global_inventory"))
       first_row = result.first()
+      currgold = first_row.gold
       quantity = 0
       plan = []
       for barrel in wholesale_catalog:
-         if barrel.sku == "SMALL_RED_BARREL":
-            if first_row.num_red_potions < 10 and first_row.gold >= barrel.price:
-              plan.append(
-                {
-                    "sku": "SMALL_RED_BARREL",
-                    "quantity": 1,
-                }
-              )
          if barrel.sku == "SMALL_BLUE_BARREL":
-            if first_row.num_blue_potions < 10 and first_row.gold >= barrel.price:
+            if first_row.num_blue_potions < 10 and currgold >= barrel.price:
+              currgold -= 120
               plan.append(
                 {
                     "sku": "SMALL_BLUE_BARREL",
                     "quantity": 1,
                 }
               )
+         if barrel.sku == "SMALL_RED_BARREL":
+            if first_row.num_red_potions < 10 and currgold >= barrel.price:
+              currgold -= 100
+              plan.append(
+                {
+                    "sku": "SMALL_RED_BARREL",
+                    "quantity": 1,
+                }
+              )
          if barrel.sku == "SMALL_GREEN_BARREL":
-            if first_row.num_green_potions < 10 and first_row.gold >= barrel.price:
+            if first_row.num_green_potions < 10 and currgold >= barrel.price:
+              currgold -= 100
               plan.append(
                 {
                     "sku": "SMALL_GREEN_BARREL",
