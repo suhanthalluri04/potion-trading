@@ -24,17 +24,21 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
     print(barrels_delivered)
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT gold, num_red_ml FROM global_inventory"))
-      first_row = result.first()
-      goldNew = first_row.gold - (barrels_delivered[0].quantity * barrels_delivered[0].price)
-      mLnew = first_row.num_red_ml + (barrels_delivered[0].quantity * barrels_delivered[0].ml_per_barrel)
-      #only one barrel purchased at a time as of now, will have to change this later
-
-      connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {goldNew} "))
-      connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {mLnew} "))
-      
-
-
+      for barrel in barrels_delivered:
+        result = connection.execute(sqlalchemy.text("SELECT gold, num_red_ml, num_blue_ml, num_green_ml FROM global_inventory"))
+        first_row = result.first()
+        goldNew = first_row.gold - (barrel.quantity * barrel.price)
+        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {goldNew} "))
+        if barrel.sku == "SMALL_RED_BARREL":
+          mLnew = first_row.num_red_ml + (barrel.quantity * barrel.ml_per_barrel)
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {mLnew} "))
+        elif barrel.sku == "SMALL_BLUE_BARREL":
+          mLnew = first_row.num_blue_ml + (barrel.quantity * barrel.ml_per_barrel)
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = {mLnew} "))
+        elif barrel.sku == "GREEN_BLUE_BARREL":
+          mLnew = first_row.num_green_ml + (barrel.quantity * barrel.ml_per_barrel)
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {mLnew} "))
+        #only one barrel purchased at a time as of now, will have to change this later
     return "OK"
 
 # Gets called once a day
@@ -43,23 +47,33 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
     print(wholesale_catalog)
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT gold, num_red_potions FROM global_inventory"))
+      result = connection.execute(sqlalchemy.text("SELECT gold, num_red_potions, num_blue_potions, num_green_potions FROM global_inventory"))
       first_row = result.first()
       quantity = 0
-      boughtSKU = ''
+      plan = []
       for barrel in wholesale_catalog:
          if barrel.sku == "SMALL_RED_BARREL":
-            #As a very basic initial logic, purchase a new small red potion barrel 
-            #only if the number of potions in inventory is less than 10. 
             if first_row.num_red_potions < 10 and first_row.gold >= barrel.price:
-              boughtSKU = barrel.sku
-              quantity = 1
-      if quantity < 1:
-         return []
-      else:
-        return [
-            {
-                "sku": boughtSKU,
-                "quantity": quantity,
-            }
-        ]
+              plan.append(
+                {
+                    "sku": "SMALL_RED_BARREL",
+                    "quantity": 1,
+                }
+              )
+         if barrel.sku == "SMALL_BLUE_BARREL":
+            if first_row.num_blue_potions < 10 and first_row.gold >= barrel.price:
+              plan.append(
+                {
+                    "sku": "SMALL_BLUE_BARREL",
+                    "quantity": 1,
+                }
+              )
+         if barrel.sku == "SMALL_GREEN_BARREL":
+            if first_row.num_green_potions < 10 and first_row.gold >= barrel.price:
+              plan.append(
+                {
+                    "sku": "SMALL_GREEN_BARREL",
+                    "quantity": 1,
+                }
+              )
+      return plan

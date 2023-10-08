@@ -14,16 +14,17 @@ router = APIRouter(
 class NewCart(BaseModel):
     customer: str
 
-carts = []
+carts = {}
 
 @router.post("/")
 def create_cart(new_cart: NewCart):
     """ """
-    #(customer name, SKU, quantity)
-    carts.append([new_cart.customer, 0, 0])
+    #(name : name, qtyRed, qtyGreen, qtyBlue)
+    id = hash(new_cart.customer)
+    carts[id] = [new_cart.customer, 0, 0, 0]
     #new cart should be last cart in list
 
-    return {"cart_id": len(carts) - 1}
+    return {"cart_id": id}
 
 
 @router.get("/{cart_id}")
@@ -39,10 +40,12 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-    carts[cart_id][1] = item_sku
-    carts[cart_id][2] = cart_item.quantity
-
-
+    if item_sku == "RED_POTION_0":
+      carts[cart_id][1] = cart_item.quantity
+    if item_sku == "GREEN_POTION_0":
+      carts[cart_id][2] = cart_item.quantity
+    if item_sku == "BLUE_POTION_0":
+      carts[cart_id][3] = cart_item.quantity
     return "OK"
 
 
@@ -54,18 +57,24 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     print("payment:",cart_checkout.payment)
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT num_red_potions, gold FROM global_inventory"))
+      result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions, gold FROM global_inventory"))
       first_row = result.first()
       potionsBought = 0
       moneyPaid = 0
-      if carts[cart_id][2] > first_row.num_red_potions:
+      if carts[cart_id][1] > first_row.num_red_potions\
+          or carts[cart_id][2] > first_row.num_green_potions \
+          or carts[cart_id][3] > first_row.num_blue_potions:
           raise HTTPException(status_code=400, detail="Not enough potions in stock.")
       else:
-          potionsBought = carts[cart_id][2]
-          moneyPaid = (50 * carts[cart_id][2])
-          newPot = first_row.num_red_potions - carts[cart_id][2]
+          potionsBought = carts[cart_id][1] + carts[cart_id][2] + carts[cart_id][3]
+          moneyPaid = (50 * potionsBought)
+          newRedPot = first_row.num_red_potions - carts[cart_id][1]
+          newGreenPot = first_row.num_green_potions - carts[cart_id][2]
+          newBluePot = first_row.num_blue_ptions - carts[cart_id][3]
           newGold = first_row.gold + moneyPaid
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {newPot}"))
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {newRedPot}"))
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {newGreenPot}"))
+          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = {newBluePot}"))
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {newGold}"))
 
     return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}
