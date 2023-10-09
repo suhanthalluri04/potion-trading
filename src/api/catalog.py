@@ -45,4 +45,5 @@ def get_catalog():
                       "potion_type": [0, 100, 0, 0],
                   }
             )
+        print("Catalog Log:", catalog)
         return catalog

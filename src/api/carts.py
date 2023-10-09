@@ -19,7 +19,7 @@ carts = {}
 @router.post("/")
 def create_cart(new_cart: NewCart):
     """ """
-    #(name : name, qtyRed, qtyGreen, qtyBlue)
+    #(id : name, qtyRed, qtyGreen, qtyBlue)
     id = hash(new_cart.customer)
     carts[id] = [new_cart.customer, 0, 0, 0]
     #new cart should be last cart in list
