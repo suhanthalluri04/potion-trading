@@ -70,7 +70,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
           moneyPaid = (50 * potionsBought)
           newRedPot = first_row.num_red_potions - carts[cart_id][1]
           newGreenPot = first_row.num_green_potions - carts[cart_id][2]
-          newBluePot = first_row.num_blue_ptions - carts[cart_id][3]
+          newBluePot = first_row.num_blue_potions - carts[cart_id][3]
           newGold = first_row.gold + moneyPaid
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {newRedPot}"))
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {newGreenPot}"))
