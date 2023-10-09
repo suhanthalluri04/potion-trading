@@ -35,7 +35,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         elif barrel.sku == "SMALL_BLUE_BARREL":
           mLnew = first_row.num_blue_ml + (barrel.quantity * barrel.ml_per_barrel)
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = {mLnew} "))
-        elif barrel.sku == "GREEN_BLUE_BARREL":
+        elif barrel.sku == "SMALL_GREEN_BARREL":
           mLnew = first_row.num_green_ml + (barrel.quantity * barrel.ml_per_barrel)
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {mLnew} "))
         #only one barrel purchased at a time as of now, will have to change this later
