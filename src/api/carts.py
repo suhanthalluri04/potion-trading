@@ -56,6 +56,7 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     print("payment:",cart_checkout.payment)
+    print("Potions about to be Bought:", "Red:", carts[cart_id][1], "Green", carts[cart_id][2], "Blue", carts[cart_id][3])
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions, gold FROM global_inventory"))
       first_row = result.first()
@@ -67,7 +68,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
           raise HTTPException(status_code=400, detail="Not enough potions in stock.")
       else:
           potionsBought = carts[cart_id][1] + carts[cart_id][2] + carts[cart_id][3]
-          moneyPaid = (50 * potionsBought)
+          moneyPaid = (50 * carts[cart_id][1]) + (25 * (carts[cart_id][2] + carts[cart_id][3]))
           newRedPot = first_row.num_red_potions - carts[cart_id][1]
           newGreenPot = first_row.num_green_potions - carts[cart_id][2]
           newBluePot = first_row.num_blue_potions - carts[cart_id][3]
