@@ -57,8 +57,8 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    print("payment:",cart_checkout.payment)
-    print("Potions about to be Bought:", "Red:", carts[cart_id][1], "Green", carts[cart_id][2], "Blue", carts[cart_id][3])
+    log("payment:",cart_checkout.payment)
+    log("Potions about to be Bought:", "Red:", carts[cart_id][1], "Green", carts[cart_id][2], "Blue", carts[cart_id][3])
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions, gold FROM global_inventory"))
       first_row = result.first()
@@ -67,7 +67,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
       if carts[cart_id][1] > first_row.num_red_potions\
           or carts[cart_id][2] > first_row.num_green_potions \
           or carts[cart_id][3] > first_row.num_blue_potions:
-          print("Log: Not Enough Potions")
+          log("Potion Buy Failed", "Not enough Potions")
           raise HTTPException(status_code=400, detail="Not enough potions in stock.")
       else:
           result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions, gold FROM global_inventory"))
