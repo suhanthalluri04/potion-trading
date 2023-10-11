@@ -20,6 +20,9 @@ def get_inventory():
       first_row = result.first()
       totalml = first_row.num_red_ml + first_row.num_green_ml + first_row.num_blue_ml #change this after other potions added
       totalPot = first_row.num_red_potions + first_row.num_green_potions + first_row.num_blue_potions
+      log("Audit: Current mL", f"Red: {first_row.num_red_ml} Green: {first_row.num_green_ml} Blue: {first_row.num_blue_ml}")
+      log("Audit: Current Gold", f"Gold: {first_row.gold}")
+      log("Audit: Current Potions", f"Red: {first_row.num_red_potions} Green: {first_row.num_green_potions} Blue: {first_row.num_blue_potions}")
     return {"number_of_potions": totalPot, "ml_in_barrels": totalml, "gold": first_row.gold}
 
 class Result(BaseModel):
