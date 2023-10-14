@@ -22,24 +22,23 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     log("Potions Delivered Log:", potions_delivered)
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions,\
-                                                   num_red_ml, num_green_ml, num_blue_ml FROM global_inventory"))
+      result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory"))
       first_row = result.first()
       for potion in potions_delivered:
         if potion.potion_type == [100, 0, 0, 0]:
-          potNew = first_row.num_red_potions + (potion.quantity)
           mLnew = first_row.num_red_ml - (potion.quantity * 100)
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {potNew} "))
+          connection.execute(sqlalchemy.text(f"UPDATE catalog SET quantity = catalog.quantity + {potion.quantity} \
+                                             WHERE catalog.catalog_id = 1"))
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {mLnew} "))
         elif potion.potion_type == [0, 100, 0, 0]:
-          potNew = first_row.num_green_potions + (potion.quantity)
           mLnew = first_row.num_green_ml - (potion.quantity * 100)
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {potNew} "))
+          connection.execute(sqlalchemy.text(f"UPDATE catalog SET quantity = catalog.quantity + {potion.quantity} \
+                                             WHERE catalog.catalog_id = 3"))
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {mLnew} "))
         elif potion.potion_type == [0, 0, 100, 0]:
-          potNew = first_row.num_blue_potions + (potion.quantity)
           mLnew = first_row.num_blue_ml - (potion.quantity * 100)
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = {potNew} "))
+          connection.execute(sqlalchemy.text(f"UPDATE catalog SET quantity = catalog.quantity + {potion.quantity} \
+                                             WHERE catalog.catalog_id = 2"))
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = {mLnew} "))
     return "OK"
 

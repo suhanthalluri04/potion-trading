@@ -40,7 +40,6 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         elif barrel.sku == "SMALL_GREEN_BARREL":
           mLnew = first_row.num_green_ml + (barrel.quantity * barrel.ml_per_barrel)
           connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {mLnew} "))
-        #only one barrel purchased at a time as of now, will have to change this later
     return "OK"
 
 # Gets called once a day
@@ -49,14 +48,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
     log("Wholesale Catalog Log:", wholesale_catalog)
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT gold, num_red_potions, num_blue_potions, num_green_potions FROM global_inventory"))
-      first_row = result.first()
-      currgold = first_row.gold
+      currgold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).first().gold
+      result = connection.execute(sqlalchemy.text("SELECT sku, quantity FROM catalog")).all()
       quantity = 0
       plan = []
       for barrel in wholesale_catalog:
          if barrel.sku == "SMALL_BLUE_BARREL":
-            if first_row.num_blue_potions < 10 and currgold >= barrel.price:
+            if result[1][1] < 10 and currgold >= barrel.price:
               currgold -= 120
               plan.append(
                 {
@@ -65,7 +63,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 }
               )
          if barrel.sku == "SMALL_RED_BARREL":
-            if first_row.num_red_potions < 10 and currgold >= barrel.price:
+            if result[0][1] < 10 and currgold >= barrel.price:
               currgold -= 100
               plan.append(
                 {
@@ -74,7 +72,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 }
               )
          if barrel.sku == "SMALL_GREEN_BARREL":
-            if first_row.num_green_potions < 10 and currgold >= barrel.price:
+            if result[2][1] < 10 and currgold >= barrel.price:
               currgold -= 100
               plan.append(
                 {

@@ -21,18 +21,15 @@ carts = {}
 @router.post("/")
 def create_cart(new_cart: NewCart):
     """ """
-    #(id : name, qtyRed, qtyGreen, qtyBlue)
-    id = hash(new_cart.customer)
-    carts[id] = [new_cart.customer, 0, 0, 0]
-    #new cart should be last cart in list
-
-    return {"cart_id": id}
-
+    with db.engine.begin() as connection:
+      cart_id = connection.execute(sqlalchemy.text("INSERT INTO carts (customer_name) VALUES (:name) RETURNING cart_id"), [{"name": new_cart.customer}])
+    log("New Cart", cart_id)
+    return cart_id
 
 @router.get("/{cart_id}")
 def get_cart(cart_id: int):
     """ """
-    return {carts[cart_id]}
+    return None
 
 
 class CartItem(BaseModel):
@@ -42,12 +39,13 @@ class CartItem(BaseModel):
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-    if item_sku == "RED_POTION_0":
-      carts[cart_id][1] = cart_item.quantity
-    if item_sku == "GREEN_POTION_0":
-      carts[cart_id][2] = cart_item.quantity
-    if item_sku == "BLUE_POTION_0":
-      carts[cart_id][3] = cart_item.quantity
+    with db.engine.begin() as connection:
+      connection.execute(sqlalchemy.text(
+          """
+          INSERT INTO cart_items (cart_id, catalog_id, quantity) 
+          SELECT :cart_id, catalog_id, :quantity
+          FROM catalog WHERE catalog.sku = :item_sku
+          """), [{"cart_id": cart_id, "item_sku": item_sku, 'quantity': cart_item.quantity}])
     return "OK"
 
 
@@ -57,30 +55,32 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    log("payment:",cart_checkout.payment)
-    log("Potions about to be Bought:", "Red:", carts[cart_id][1], "Green", carts[cart_id][2], "Blue", carts[cart_id][3])
+    potionsBought = 0
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions, gold FROM global_inventory"))
-      first_row = result.first()
-      potionsBought = 0
       moneyPaid = 0
-      if carts[cart_id][1] > first_row.num_red_potions\
-          or carts[cart_id][2] > first_row.num_green_potions \
-          or carts[cart_id][3] > first_row.num_blue_potions:
-          log("Potion Buy Failed", "Not enough Potions")
-          raise HTTPException(status_code=400, detail="Not enough potions in stock.")
-      else:
-          result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions, gold FROM global_inventory"))
-          first_row = result.first()
-          potionsBought = carts[cart_id][1] + carts[cart_id][2] + carts[cart_id][3]
-          moneyPaid = (50 * carts[cart_id][1]) + (50 * (carts[cart_id][2] + carts[cart_id][3]))
-          newRedPot = first_row.num_red_potions - carts[cart_id][1]
-          newGreenPot = first_row.num_green_potions - carts[cart_id][2]
-          newBluePot = first_row.num_blue_potions - carts[cart_id][3]
-          newGold = first_row.gold + moneyPaid
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = {newRedPot}"))
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = {newGreenPot}"))
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = {newBluePot}"))
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = {newGold}"))
-
+      potionsBought = connection.execute(sqlalchemy.text(
+          """
+          SELECT SUM(quantity)
+          FROM cart_items
+          WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }]).scalar()
+      connection.execute(sqlalchemy.text(
+          """
+          UPDATE catalog
+          SET quantity = catalog.quantity - cart_items.quantity
+          FROM cart_items
+          WHERE catalog.catalog_id = cart_items.catalog_id and cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
+      cartItems = connection.execute(sqlalchemy.text(
+          """
+          SELECT catalog_id, quantity FROM cart_items
+          WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
+      for catalog_id, quantity in cartItems:
+         moneyPaid += connection.execute(sqlalchemy.text(
+          """
+          UPDATE global_inventory
+          SET gold = global_inventory.gold + (:quantity * catalog.price)
+          FROM catalog
+          WHERE catalog.catalog_id = :catalog_id
+          RETURNING (:quantity * catalog.price)"""), [{"catalog_id": catalog_id, "quantity": quantity}]).scalar()
+         
+    log("Succesful Checkout", {"Potions Bought": potionsBought, "Money Paid" : moneyPaid})
     return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}
