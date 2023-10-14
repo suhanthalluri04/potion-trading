@@ -62,21 +62,21 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                     "quantity": 1,
                 }
               )
-         if barrel.sku == "SMALL_RED_BARREL":
-            if result[0][1] < 10 and currgold >= barrel.price:
-              currgold -= 100
-              plan.append(
-                {
-                    "sku": "SMALL_RED_BARREL",
-                    "quantity": 1,
-                }
-              )
          if barrel.sku == "SMALL_GREEN_BARREL":
             if result[2][1] < 10 and currgold >= barrel.price:
               currgold -= 100
               plan.append(
                 {
                     "sku": "SMALL_GREEN_BARREL",
+                    "quantity": 1,
+                }
+              )
+         if barrel.sku == "SMALL_RED_BARREL":
+            if result[0][1] < 10 and currgold >= barrel.price:
+              currgold -= 100
+              plan.append(
+                {
+                    "sku": "SMALL_RED_BARREL",
                     "quantity": 1,
                 }
               )
