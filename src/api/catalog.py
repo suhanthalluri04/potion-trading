@@ -17,14 +17,15 @@ def get_catalog():
         result = connection.execute(sqlalchemy.text("SELECT sku, name, quantity, price, potion_type FROM catalog"))
     #Can return a max of 20 items.
         for sku, name, quantity, price, potion_type in result:
-          catalog.append(
-             {
-              "sku": sku,
-              "name": name,
-              "quantity": quantity,
-              "price": price,
-              "potion_type":potion_type 
-            }
-          )
+          if quantity > 0:
+            catalog.append(
+              {
+                "sku": sku,
+                "name": name,
+                "quantity": quantity,
+                "price": price,
+                "potion_type":potion_type 
+              }
+            )
         log("Catalog Log:", catalog)
         return catalog
