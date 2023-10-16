@@ -22,7 +22,7 @@ carts = {}
 def create_cart(new_cart: NewCart):
     """ """
     with db.engine.begin() as connection:
-      cart_id = connection.execute(sqlalchemy.text("INSERT INTO carts (customer_name) VALUES (:name) RETURNING cart_id"), [{"name": new_cart.customer}]).scalar_one()
+      cart_id = connection.execute(sqlalchemy.text("INSERT INTO carts (customer_name) VALUES (:name) RETURNING id"), [{"name": new_cart.customer}]).scalar_one()
     log("New Cart", cart_id)
     return {"cart_id" : cart_id}
 
@@ -43,7 +43,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
       connection.execute(sqlalchemy.text(
           """
           INSERT INTO cart_items (cart_id, catalog_id, quantity) 
-          SELECT :cart_id, catalog_id, :quantity
+          SELECT :cart_id, id, :quantity
           FROM catalog WHERE catalog.sku = :item_sku
           """), [{"cart_id": cart_id, "item_sku": item_sku, 'quantity': cart_item.quantity}])
     return "OK"
@@ -68,7 +68,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
           UPDATE catalog
           SET quantity = catalog.quantity - cart_items.quantity
           FROM cart_items
-          WHERE catalog.catalog_id = cart_items.catalog_id and cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
+          WHERE catalog.id = cart_items.catalog_id and cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
       cartItems = connection.execute(sqlalchemy.text(
           """
           SELECT catalog_id, quantity FROM cart_items
@@ -79,8 +79,13 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
           UPDATE global_inventory
           SET gold = global_inventory.gold + (:quantity * catalog.price)
           FROM catalog
-          WHERE catalog.catalog_id = :catalog_id
+          WHERE catalog.id = :catalog_id
           RETURNING (:quantity * catalog.price)"""), [{"catalog_id": catalog_id, "quantity": quantity}]).scalar()
+      connection.execute(sqlalchemy.text(
+          """
+          UPDATE carts
+          SET payment = :payment
+          WHERE id = :cart_id"""), [{"payment": cart_checkout.payment, "cart_id": cart_id}])
          
     log("Succesful Checkout", {"Potions Bought": potionsBought, "Money Paid" : moneyPaid})
     return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}

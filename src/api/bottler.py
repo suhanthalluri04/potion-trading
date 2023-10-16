@@ -22,24 +22,26 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     log("Potions Delivered Log:", potions_delivered)
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory"))
-      first_row = result.first()
       for potion in potions_delivered:
-        if potion.potion_type == [100, 0, 0, 0]:
-          mLnew = first_row.num_red_ml - (potion.quantity * 100)
-          connection.execute(sqlalchemy.text(f"UPDATE catalog SET quantity = catalog.quantity + {potion.quantity} \
-                                             WHERE catalog.catalog_id = 1"))
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = {mLnew} "))
-        elif potion.potion_type == [0, 100, 0, 0]:
-          mLnew = first_row.num_green_ml - (potion.quantity * 100)
-          connection.execute(sqlalchemy.text(f"UPDATE catalog SET quantity = catalog.quantity + {potion.quantity} \
-                                             WHERE catalog.catalog_id = 3"))
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = {mLnew} "))
-        elif potion.potion_type == [0, 0, 100, 0]:
-          mLnew = first_row.num_blue_ml - (potion.quantity * 100)
-          connection.execute(sqlalchemy.text(f"UPDATE catalog SET quantity = catalog.quantity + {potion.quantity} \
-                                             WHERE catalog.catalog_id = 2"))
-          connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = {mLnew} "))
+        lostGreen = potion.potion_type[1] * potion.quantity
+        lostBlue = potion.potion_type[2] * potion.quantity
+        lostRed = potion.potion_type[0] * potion.quantity
+        lostDark = potion.potion_type[3] * potion.quantity
+        connection.execute(sqlalchemy.text(
+          """
+          UPDATE global_inventory SET
+          num_red_ml = num_red_ml - :lostRed,
+          num_blue_ml = num_blue_ml - :lostBlue,
+          num_green_ml = num_green_ml - :lostGreen
+          """
+        ),[{"lostRed": lostRed, "lostBlue": lostBlue, "lostGreen": lostGreen,}])
+        connection.execute(sqlalchemy.text(
+          """
+          UPDATE catalog SET
+          quantity = quantity + :newQuantity
+          WHERE potion_type = :givenPotion_type
+          """
+        ),[{"newQuantity": potion.quantity, "givenPotion_type": potion.potion_type}])
     return "OK"
 
 # Gets called 4 times a day
@@ -52,30 +54,38 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_blue_ml, num_green_ml FROM global_inventory"))
       first_row = result.first()
-      qtyRed = first_row.num_red_ml // 100
-      qtyBlue = first_row.num_blue_ml // 100
+      qtyRed = first_row.num_red_ml // 50
+      qtyBlue = first_row.num_blue_ml // 50
       qtyGreen = first_row.num_green_ml // 100
-      if qtyRed > 0:
+      if qtyRed >= 1 and qtyBlue >= 1:
+        quantity = min(qtyRed, qtyBlue)
         plan.append(
                 {
-                    "potion_type": [100, 0, 0, 0],
-                    "quantity": qtyRed,
+                    "potion_type": [50, 0, 50, 0],
+                    "quantity": quantity
                 }
         )
-      if qtyBlue > 0:
-        plan.append(
-                {
-                    "potion_type": [0, 0, 100, 0],
-                    "quantity": qtyBlue,
-                }
-        )
-      if qtyGreen > 0:
-        plan.append(
-                {
-                    "potion_type": [0, 100, 0, 0],
-                    "quantity": qtyGreen,
-                }
-        )
+      # if qtyRed > 0:
+      #   plan.append(
+      #           {
+      #               "potion_type": [100, 0, 0, 0],
+      #               "quantity": qtyRed,
+      #           }
+      #   )
+      # if qtyBlue > 0:
+      #   plan.append(
+      #           {
+      #               "potion_type": [0, 0, 100, 0],
+      #               "quantity": qtyBlue,
+      #           }
+      #   )
+      # if qtyGreen > 0:
+      #   plan.append(
+      #           {
+      #               "potion_type": [0, 100, 0, 0],
+      #               "quantity": qtyGreen,
+      #           }
+      #   )
 
     # Each bottle has a quantity of what proportion of red, blue, and
     # green potion to add.

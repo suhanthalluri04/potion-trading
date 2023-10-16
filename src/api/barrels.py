@@ -25,29 +25,29 @@ class Barrel(BaseModel):
 def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
     log("Barrels Delivered Log:", barrels_delivered)
-    newRed = 0
-    newGreen = 0
-    newBlue = 0
-    newDark = 0
-    goldPaid = 0
     for barrel in barrels_delivered:
+      newRed = 0
+      newGreen = 0
+      newBlue = 0
+      newDark = 0
+      goldPaid = 0
       goldPaid = (barrel.quantity * barrel.price)
-      if barrel.sku == "SMALL_RED_BARREL":
+      if barrel.sku == "MINI_RED_BARREL":
         newRed += barrel.quantity * barrel.ml_per_barrel
       elif barrel.sku == "SMALL_GREEN_BARREL":
         newGreen += barrel.quantity * barrel.ml_per_barrel
-      elif barrel.sku == "SMALL_BLUE_BARREL":
+      elif barrel.sku == "MINI_BLUE_BARREL":
         newBlue += barrel.quantity * barrel.ml_per_barrel
-    with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text(
-         """
-        UPDATE global_inventory SET
-        gold = gold - :goldPaid,
-        num_red_ml = num_red_ml + :newRed,
-        num_blue_ml = num_blue_ml + :newBlue,
-        num_green_ml = num_green_ml + :newGreen
-        """
-      ),[{"newRed": newRed, "goldPaid": goldPaid, "newBlue": newBlue, "newGreen": newGreen,}])
+      with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(
+          """
+          UPDATE global_inventory SET
+          gold = gold - :goldPaid,
+          num_red_ml = num_red_ml + :newRed,
+          num_blue_ml = num_blue_ml + :newBlue,
+          num_green_ml = num_green_ml + :newGreen
+          """
+        ),[{"newRed": newRed, "goldPaid": goldPaid, "newBlue": newBlue, "newGreen": newGreen,}])
 
     return "OK"
 
@@ -59,36 +59,33 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
       greenBought = False
       currgold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).first().gold
-      result = connection.execute(sqlalchemy.text("SELECT sku, quantity FROM catalog")).all()
-      quantity = 0
       plan = []
       for barrel in wholesale_catalog:
-         if barrel.sku == "SMALL_BLUE_BARREL":
-            if result[1][1] < 10 and currgold >= barrel.price:
-              currgold -= 120
+         if barrel.sku == "MINI_BLUE_BARREL":
+            if currgold >= barrel.price:
+              currgold -= barrel.price
               plan.append(
                 {
-                    "sku": "SMALL_BLUE_BARREL",
+                    "sku": barrel.sku,
                     "quantity": 1,
                 }
               )
-         if barrel.sku == "SMALL_GREEN_BARREL":
-            print(result[2][1],barrel.price, currgold)
-            if result[2][1] < 10 and currgold >= barrel.price:
-              greenBought = True
-              currgold -= 100
+        #  if barrel.sku == "SMALL_GREEN_BARREL":
+        #     if currgold >= barrel.price:
+        #       greenBought = True
+        #       currgold -= 100
+        #       plan.append(
+        #         {
+        #             "sku": "SMALL_GREEN_BARREL",
+        #             "quantity": 1,
+        #         }
+        #       )
+         if barrel.sku == "MINI_RED_BARREL":
+            if currgold >= barrel.price:
+              currgold -= barrel.price
               plan.append(
                 {
-                    "sku": "SMALL_GREEN_BARREL",
-                    "quantity": 1,
-                }
-              )
-         if barrel.sku == "SMALL_RED_BARREL" and greenBought:
-            if result[0][1] < 10 and currgold >= barrel.price:
-              currgold -= 100
-              plan.append(
-                {
-                    "sku": "SMALL_RED_BARREL",
+                    "sku": barrel.sku,
                     "quantity": 1,
                 }
               )
