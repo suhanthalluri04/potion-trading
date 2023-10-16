@@ -96,4 +96,5 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         log("Succesful Checkout", {"Potions Bought": potionsBought, "Money Paid" : moneyPaid})
         return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}
       else:
+         log("Order Cannot be Completed", isOrderPossible)
          raise HTTPException(status_code = 400, detail = "Not enough potions in stock. Order Cancelled")
