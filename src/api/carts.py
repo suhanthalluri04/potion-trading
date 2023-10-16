@@ -58,34 +58,42 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     potionsBought = 0
     with db.engine.begin() as connection:
       moneyPaid = 0
-      potionsBought = connection.execute(sqlalchemy.text(
+      isOrderPossible = connection.execute(sqlalchemy.text(
           """
-          SELECT SUM(quantity)
-          FROM cart_items
-          WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }]).scalar()
-      connection.execute(sqlalchemy.text(
-          """
-          UPDATE catalog
-          SET quantity = catalog.quantity - cart_items.quantity
-          FROM cart_items
-          WHERE catalog.id = cart_items.catalog_id and cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
-      cartItems = connection.execute(sqlalchemy.text(
-          """
-          SELECT catalog_id, quantity FROM cart_items
-          WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
-      for catalog_id, quantity in cartItems:
-         moneyPaid += connection.execute(sqlalchemy.text(
-          """
-          UPDATE global_inventory
-          SET gold = global_inventory.gold + (:quantity * catalog.price)
-          FROM catalog
-          WHERE catalog.id = :catalog_id
-          RETURNING (:quantity * catalog.price)"""), [{"catalog_id": catalog_id, "quantity": quantity}]).scalar()
-      connection.execute(sqlalchemy.text(
-          """
-          UPDATE carts
-          SET payment = :payment
-          WHERE id = :cart_id"""), [{"payment": cart_checkout.payment, "cart_id": cart_id}])
-         
-    log("Succesful Checkout", {"Potions Bought": potionsBought, "Money Paid" : moneyPaid})
-    return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}
+          SELECT catalog_id, cart_items.quantity FROM cart_items
+          JOIN catalog ON catalog.quantity < cart_items.quantity
+          WHERE cart_items.cart_id = :cart_id and catalog.id = cart_items.catalog_id"""), [{"cart_id": cart_id }]).all()
+      log("isOrderPossible", isOrderPossible)
+      if len(isOrderPossible) == 0:
+        potionsBought = connection.execute(sqlalchemy.text(
+            """
+            SELECT SUM(quantity)
+            FROM cart_items
+            WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }]).scalar()
+        connection.execute(sqlalchemy.text(
+            """
+            UPDATE catalog
+            SET quantity = catalog.quantity - cart_items.quantity
+            FROM cart_items
+            WHERE catalog.id = cart_items.catalog_id and cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
+        cartItems = connection.execute(sqlalchemy.text(
+            """
+            SELECT catalog_id, quantity FROM cart_items
+            WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
+        for catalog_id, quantity in cartItems:
+          moneyPaid += connection.execute(sqlalchemy.text(
+            """
+            UPDATE global_inventory
+            SET gold = global_inventory.gold + (:quantity * catalog.price)
+            FROM catalog
+            WHERE catalog.id = :catalog_id
+            RETURNING (:quantity * catalog.price)"""), [{"catalog_id": catalog_id, "quantity": quantity}]).scalar()
+        connection.execute(sqlalchemy.text(
+            """
+            UPDATE carts
+            SET payment = :payment
+            WHERE id = :cart_id"""), [{"payment": cart_checkout.payment, "cart_id": cart_id}])
+        log("Succesful Checkout", {"Potions Bought": potionsBought, "Money Paid" : moneyPaid})
+        return {"total_potions_bought": potionsBought, "total_gold_paid": moneyPaid}
+      else:
+         raise HTTPException(status_code = 400, detail = "Not enough potions in stock. Order Cancelled")

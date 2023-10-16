@@ -26,18 +26,11 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
     log("Barrels Delivered Log:", barrels_delivered)
     for barrel in barrels_delivered:
-      newRed = 0
-      newGreen = 0
-      newBlue = 0
-      newDark = 0
-      goldPaid = 0
+      newGreen = barrel.potion_type[1] * barrel.ml_per_barrel
+      newBlue = barrel.potion_type[2] * barrel.ml_per_barrel
+      newRed = barrel.potion_type[0] * barrel.ml_per_barrel
+      newDark = barrel.potion_type[3] * barrel.ml_per_barrel
       goldPaid = (barrel.quantity * barrel.price)
-      if barrel.sku == "MINI_RED_BARREL":
-        newRed += barrel.quantity * barrel.ml_per_barrel
-      elif barrel.sku == "SMALL_GREEN_BARREL":
-        newGreen += barrel.quantity * barrel.ml_per_barrel
-      elif barrel.sku == "MINI_BLUE_BARREL":
-        newBlue += barrel.quantity * barrel.ml_per_barrel
       with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text(
           """
