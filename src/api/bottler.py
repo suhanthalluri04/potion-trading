@@ -52,19 +52,64 @@ def get_bottle_plan():
     """
     plan = []
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_blue_ml, num_green_ml FROM global_inventory"))
+      result = connection.execute(sqlalchemy.text("SELECT gold, num_red_ml, num_blue_ml, num_green_ml FROM global_inventory"))
+      catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
       first_row = result.first()
-      qtyRed = first_row.num_red_ml // 50
-      qtyBlue = first_row.num_blue_ml // 50
-      qtyGreen = first_row.num_green_ml // 100
-      if qtyRed >= 1 and qtyBlue >= 1:
-        quantity = min(qtyRed, qtyBlue)
-        plan.append(
-                {
-                    "potion_type": [50, 0, 50, 0],
-                    "quantity": quantity
-                }
-        )
+      mlList = [first_row.num_red_ml, first_row.num_green_ml, first_row.num_blue_ml]
+      # if qtyRed >= 1 and qtyBlue >= 1:
+      #   quantity = min(qtyRed, qtyBlue)
+      #   plan.append(
+      #           {
+      #               "potion_type": [50, 0, 50, 0],
+      #               "quantity": quantity
+      #           }
+      #   )
+      #ONLY BOTTLE NON full rbg
+      for potion_type in catalog:
+         potion_type = potion_type[0]
+         if potion_type[0] != 100 and \
+         potion_type[1] != 100 and \
+         potion_type[2] != 100:
+          if mlList[0] >= potion_type[0] and \
+          mlList[1] >= potion_type[1] and \
+          mlList[2] >= potion_type[2]:
+            qtyBasedonML = []
+            for i in range(len(potion_type)): 
+              if potion_type[i] != 0:
+                  qtyBasedonML.append(mlList[i] // potion_type[i])
+            quantity = min(qtyBasedonML)   
+            plan.append(
+                    {
+                        "potion_type": potion_type,
+                        "quantity": quantity
+                    }
+            )
+            for k in range(len(mlList)):
+                mlList[k] -= potion_type[k] * quantity
+      #only full RBG potions
+      for potion_type in catalog:
+         print(potion_type)
+         potion_type = potion_type[0]
+         if potion_type[0] == 100 or\
+         potion_type[1] == 100 or \
+         potion_type[2] == 100:
+          if mlList[0] >= potion_type[0] and\
+          mlList[1] >= potion_type[1] and \
+          mlList[2] >= potion_type[2]:
+            qtyBasedonML = []
+            for i in range(len(potion_type)): 
+              if potion_type[i] != 0:
+                  print(i, potion_type[i], mlList[i])
+                  qtyBasedonML.append(mlList[i] // potion_type[i])
+            quantity = min(qtyBasedonML)   
+            plan.append(
+                    {
+                        "potion_type": potion_type,
+                        "quantity": quantity
+                    }
+            )
+            for k in range(len(mlList)):
+                mlList[k] -= potion_type[k] * quantity
       # if qtyRed > 0:
       #   plan.append(
       #           {
@@ -86,11 +131,5 @@ def get_bottle_plan():
       #               "quantity": qtyGreen,
       #           }
       #   )
-
-    # Each bottle has a quantity of what proportion of red, blue, and
-    # green potion to add.
-    # Expressed in integers from 1 to 100 that must sum up to 100.
-
-    # Initial logic: bottle all barrels into red potions.
     log("Bottling Plan Log:", plan)
     return plan
