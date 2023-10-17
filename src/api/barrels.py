@@ -53,16 +53,25 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
       greenBought = False
       currgold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory")).first().gold
       plan = []
-      for barrel in wholesale_catalog:
-         if barrel.sku == "MINI_BLUE_BARREL":
-            if currgold >= barrel.price:
-              currgold -= barrel.price
+      #buy mini barrels
+      while currgold >= 60:
+        for barrel in wholesale_catalog:
+          if barrel.price < currgold and barrel.ml_per_barrel <= 60:
               plan.append(
                 {
                     "sku": barrel.sku,
-                    "quantity": 1,
+                    "quantity": 1
                 }
               )
+        #  if barrel.sku == "MINI_BLUE_BARREL":
+        #     if currgold >= barrel.price:
+        #       currgold -= barrel.price
+        #       plan.append(
+        #         {
+        #             "sku": barrel.sku,
+        #             "quantity": 1,
+        #         }
+        #       )
         #  if barrel.sku == "SMALL_GREEN_BARREL":
         #     if currgold >= barrel.price:
         #       greenBought = True
