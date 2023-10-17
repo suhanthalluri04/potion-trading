@@ -46,6 +46,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
           SELECT :cart_id, id, :quantity
           FROM catalog WHERE catalog.sku = :item_sku
           """), [{"cart_id": cart_id, "item_sku": item_sku, 'quantity': cart_item.quantity}])
+    log("Cart Updated", {"Cart_id": cart_id, item_sku: cart_item.quantity})
     return "OK"
 
 
@@ -63,7 +64,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
           SELECT catalog_id, cart_items.quantity FROM cart_items
           JOIN catalog ON catalog.quantity < cart_items.quantity
           WHERE cart_items.cart_id = :cart_id and catalog.id = cart_items.catalog_id"""), [{"cart_id": cart_id }]).all()
-      log("isOrderPossible", isOrderPossible)
+      log("isOrderPossible", True if len(isOrderPossible) == 0 else False)
       if len(isOrderPossible) == 0:
         potionsBought = connection.execute(sqlalchemy.text(
             """
