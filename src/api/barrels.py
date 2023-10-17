@@ -73,14 +73,14 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         #             "quantity": 1,
         #         }
         #       )
-         if barrel.sku == "MINI_RED_BARREL":
-            if currgold >= barrel.price:
-              currgold -= barrel.price
-              plan.append(
-                {
-                    "sku": barrel.sku,
-                    "quantity": 1,
-                }
-              )
+        #  if barrel.sku == "MINI_RED_BARREL":
+        #     if currgold >= barrel.price:
+        #       currgold -= barrel.price
+        #       plan.append(
+        #         {
+        #             "sku": barrel.sku,
+        #             "quantity": 1,
+        #         }
+        #       )
       log("Planned Barrel Buy Log:", plan)
       return plan

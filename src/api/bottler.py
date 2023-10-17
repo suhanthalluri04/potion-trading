@@ -54,24 +54,24 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_blue_ml, num_green_ml FROM global_inventory"))
       first_row = result.first()
-      qtyRed = first_row.num_red_ml // 100
-      qtyBlue = first_row.num_blue_ml // 100
+      qtyRed = first_row.num_red_ml // 50
+      qtyBlue = first_row.num_blue_ml // 50
       qtyGreen = first_row.num_green_ml // 100
-      # if qtyRed >= 1 and qtyBlue >= 1:
-      #   quantity = min(qtyRed, qtyBlue)
-      #   plan.append(
-      #           {
-      #               "potion_type": [50, 0, 50, 0],
-      #               "quantity": quantity
-      #           }
-      #   )
-      if qtyRed > 0:
+      if qtyRed >= 1 and qtyBlue >= 1:
+        quantity = min(qtyRed, qtyBlue)
         plan.append(
                 {
-                    "potion_type": [100, 0, 0, 0],
-                    "quantity": 1,
+                    "potion_type": [50, 0, 50, 0],
+                    "quantity": quantity
                 }
         )
+      # if qtyRed > 0:
+      #   plan.append(
+      #           {
+      #               "potion_type": [100, 0, 0, 0],
+      #               "quantity": 1,
+      #           }
+      #   )
       # if qtyBlue > 0:
       #   plan.append(
       #           {
