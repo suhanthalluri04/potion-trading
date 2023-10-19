@@ -56,6 +56,10 @@ def get_bottle_plan():
       catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
       first_row = result.first()
       mlList = [first_row.num_red_ml, first_row.num_green_ml, first_row.num_blue_ml]
+      #leave extra for multicolored potions
+      for i in range(len(mlList)):
+         if mlList[i] > 200:
+            mlList[i] -= 100
       # if qtyRed >= 1 and qtyBlue >= 1:
       #   quantity = min(qtyRed, qtyBlue)
       #   plan.append(
