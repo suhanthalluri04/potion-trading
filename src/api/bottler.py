@@ -63,7 +63,7 @@ def get_bottle_plan():
     plan = []
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text(
-         """SELECT SUM(change_red) num_red_ml, SUM(change_blue )num_blue_ml, SUM(change_green) num_green_ml 
+         """SELECT SUM(red_change) num_red_ml, SUM(blue_change)num_blue_ml, SUM(green_change) num_green_ml 
             FROM ml_ledger"""))
       catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
       first_row = result.first()
