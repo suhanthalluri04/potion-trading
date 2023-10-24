@@ -21,27 +21,37 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     log("Potions Delivered Log:", potions_delivered)
+    lostGreen = 0
+    lostBlue = 0
+    lostRed = 0
+    lostDark = 0
+    for potion in potions_delivered:
+      lostGreen -= (potion.potion_type[1] * potion.quantity)
+      lostBlue -= (potion.potion_type[2] * potion.quantity)
+      lostRed -= (potion.potion_type[0] * potion.quantity)
+      lostDark -= (potion.potion_type[3] * potion.quantity)
     with db.engine.begin() as connection:
+      t_id = connection.execute(sqlalchemy.text(
+        """
+        INSERT INTO transactions (description)
+        VALUES(:desc)
+        RETURNING id
+        """
+      ),[{"desc": "Potions Bottled:" + str(potions_delivered)}]).scalar_one()
+      connection.execute(sqlalchemy.text(
+        """
+        INSERT INTO ml_ledger (transaction_id, red_change, green_change, blue_change, dark_change)
+        VALUES(:t_id, :lostRed, :lostGreen, :lostBlue, :lostDark)
+        """
+      ),[{"t_id": t_id, "lostRed": lostRed, "lostBlue": lostBlue, "lostGreen": lostGreen, "lostDark":lostDark}])
       for potion in potions_delivered:
-        lostGreen = potion.potion_type[1] * potion.quantity
-        lostBlue = potion.potion_type[2] * potion.quantity
-        lostRed = potion.potion_type[0] * potion.quantity
-        lostDark = potion.potion_type[3] * potion.quantity
         connection.execute(sqlalchemy.text(
           """
-          UPDATE global_inventory SET
-          num_red_ml = num_red_ml - :lostRed,
-          num_blue_ml = num_blue_ml - :lostBlue,
-          num_green_ml = num_green_ml - :lostGreen
+          INSERT INTO potion_ledger (transaction_id, catalog_id, change)
+          SELECT :t_id, catalog.id, :change
+          FROM catalog WHERE catalog.potion_type = :potion_type
           """
-        ),[{"lostRed": lostRed, "lostBlue": lostBlue, "lostGreen": lostGreen,}])
-        connection.execute(sqlalchemy.text(
-          """
-          UPDATE catalog SET
-          quantity = quantity + :newQuantity
-          WHERE potion_type = :givenPotion_type
-          """
-        ),[{"newQuantity": potion.quantity, "givenPotion_type": potion.potion_type}])
+        ),[{"t_id" : t_id, "potion_type": potion.potion_type, "change": potion.quantity }])
     return "OK"
 
 # Gets called 4 times a day
@@ -52,7 +62,9 @@ def get_bottle_plan():
     """
     plan = []
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT gold, num_red_ml, num_blue_ml, num_green_ml FROM global_inventory"))
+      result = connection.execute(sqlalchemy.text(
+         """SELECT SUM(change_red) num_red_ml, SUM(change_blue )num_blue_ml, SUM(change_green) num_green_ml 
+            FROM ml_ledger"""))
       catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
       first_row = result.first()
       mlList = [first_row.num_red_ml, first_row.num_green_ml, first_row.num_blue_ml]

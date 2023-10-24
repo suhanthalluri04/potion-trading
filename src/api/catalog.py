@@ -14,18 +14,24 @@ def get_catalog():
     """
     catalog = []
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT sku, name, quantity, price, potion_type FROM catalog"))
+        result = connection.execute(sqlalchemy.text("""
+        SELECT catalog.id, sku, name, price, potion_type, SUM(change) AS quantity
+        FROM catalog
+        JOIN potion_ledger ON catalog.id = catalog_id
+        GROUP BY catalog.id
+        """))
+
     #Can return a max of 20 items.
-        for sku, name, quantity, price, potion_type in result:
-          if quantity > 0:
-            catalog.append(
-              {
-                "sku": sku,
-                "name": name,
-                "quantity": quantity,
-                "price": price,
-                "potion_type":potion_type 
-              }
-            )
-        log("Catalog Log:", catalog)
-        return catalog
+    for id, sku, name, price, potion_type, quantity in result:
+      if quantity > 0:
+        catalog.append(
+          {
+            "sku": sku,
+            "name": name,
+            "quantity": quantity,
+            "price": price,
+            "potion_type":potion_type 
+          }
+        )
+    log("Catalog Log:", catalog)
+    return catalog

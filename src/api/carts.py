@@ -61,34 +61,42 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
       moneyPaid = 0
       isOrderPossible = connection.execute(sqlalchemy.text(
           """
-          SELECT catalog_id, cart_items.quantity FROM cart_items
-          JOIN catalog ON catalog.quantity < cart_items.quantity
-          WHERE cart_items.cart_id = :cart_id and catalog.id = cart_items.catalog_id"""), [{"cart_id": cart_id }]).all()
-      log("isOrderPossible", True if len(isOrderPossible) == 0 else False)
+          SELECT cart_items.catalog_id, cart_items.quantity
+          FROM cart_items
+          JOIN catalog ON catalog_id = catalog.id
+          JOIN potion_ledger ON potion_ledger.catalog_id = catalog.id
+          WHERE cart_id = :cart_id AND catalog.quantity < cart_items.quantity
+          """), [{"cart_id": cart_id }]).all()
+      log("isOrderPossible", True if len(isOrderPossible) == 0 else False)  
       if len(isOrderPossible) == 0:
         potionsBought = connection.execute(sqlalchemy.text(
             """
             SELECT SUM(quantity)
             FROM cart_items
             WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }]).scalar()
+        t_id = connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO transactions (description)
+            VALUES(:desc)
+            RETURNING id
+            """
+          ),[{"desc": "Potions Bought:" + str(potionsBought)}]).scalar_one()
         connection.execute(sqlalchemy.text(
-            """
-            UPDATE catalog
-            SET quantity = catalog.quantity - cart_items.quantity
-            FROM cart_items
-            WHERE catalog.id = cart_items.catalog_id and cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
-        cartItems = connection.execute(sqlalchemy.text(
-            """
-            SELECT catalog_id, quantity FROM cart_items
-            WHERE cart_items.cart_id = :cart_id"""), [{"cart_id": cart_id }])
-        for catalog_id, quantity in cartItems:
-          moneyPaid += connection.execute(sqlalchemy.text(
-            """
-            UPDATE global_inventory
-            SET gold = global_inventory.gold + (:quantity * catalog.price)
-            FROM catalog
-            WHERE catalog.id = :catalog_id
-            RETURNING (:quantity * catalog.price)"""), [{"catalog_id": catalog_id, "quantity": quantity}]).scalar()
+          """
+          INSERT INTO potion_ledger (transaction_id, catalog_id, change)
+          SELECT :t_id, catalog.id, SUM(cart_items.quantity)
+          FROM catalog
+          JOIN cart_items on cart_items.catalog_id = catalog.id and cart_items.cart_id = :cart_id
+          GROUP BY catalog.id
+          """), [{"t_id": t_id, "cart_id": cart_id}])
+        moneyPaid = connection.execute(sqlalchemy.text(
+          """
+          INSERT INTO gold_ledger (transaction_id, change)
+          SELECT :t_id, SUM(cart_items.quantity * price)
+          FROM catalog
+          JOIN cart_items on cart_items.catalog_id = catalog.id and cart_items.cart_id = :cart_id
+          RETURNING change
+          """), [{"cart_id": cart_id, "t_id" : t_id}]).scalar_one()
         connection.execute(sqlalchemy.text(
             """
             UPDATE carts

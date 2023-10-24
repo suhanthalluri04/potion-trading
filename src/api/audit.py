@@ -16,16 +16,11 @@ router = APIRouter(
 def get_inventory():
     """ """
     with db.engine.begin() as connection:
-      result = connection.execute(sqlalchemy.text("SELECT gold, num_blue_ml, num_green_ml, num_red_ml FROM global_inventory"))
-      first_row = result.first()
-      result2 = connection.execute(sqlalchemy.text("SELECT name, quantity FROM catalog"))
-      potQuantities = {k:v for (k,v) in result2}
-      totalml = first_row.num_red_ml + first_row.num_green_ml + first_row.num_blue_ml
-      totalPot = sum(potQuantities.values())
-      log("Audit: Current mL", f"Red: {first_row.num_red_ml}, Green: {first_row.num_green_ml}, Blue: {first_row.num_blue_ml}")
-      log("Audit: Current Gold", f"Gold: {first_row.gold}")
-      log("Audit: Current Potions", potQuantities)
-    return {"number_of_potions": totalPot, "ml_in_barrels": totalml, "gold": first_row.gold}
+      totalGold = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM gold_ledger")).scalar_one()
+      totalPot = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM potion_ledger")).scalar_one()
+      totalml = connection.execute(sqlalchemy.text("SELECT SUM(red_change + blue_change + green_change) FROM ml_ledger")).scalar_one()
+      log("Audit: Current Gold", f"Gold: {totalGold}")
+    return {"number_of_potions": totalPot, "ml_in_barrels": totalml, "gold": totalGold}
 
 class Result(BaseModel):
     gold_match: bool
