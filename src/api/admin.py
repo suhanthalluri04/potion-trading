@@ -20,20 +20,59 @@ def reset():
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text(
           """
-          UPDATE global_inventory SET
-          gold = 100,
-          num_red_ml = 0,
-          num_blue_ml = 0,
-          num_green_ml = 0,
-          num_dark_ml = 0
+          DELETE FROM potion_ledger
           """
         ))
         connection.execute(sqlalchemy.text(
           """
-          UPDATE catalog SET
-          quantity = 0
+          DELETE FROM ml_ledger
           """
         ))
+        connection.execute(sqlalchemy.text(
+          """
+          DELETE FROM gold_ledger
+          """
+        ))
+        connection.execute(sqlalchemy.text(
+          """
+          DELETE FROM transactions
+          """
+        ))
+        t_ids = connection.execute(sqlalchemy.text(
+          """
+          INSERT INTO transactions (description)
+          VALUES
+            ('gold init'),
+            ('ml init'),
+            ('potion init')
+          RETURNING id
+          """
+        )).all()
+        print(t_ids)
+        connection.execute(sqlalchemy.text(
+          """
+          INSERT INTO gold_ledger (transaction_id, change)
+          VALUES (:t_id, 100)
+          """
+        ), [{"t_id" : t_ids[0].id}])
+        connection.execute(sqlalchemy.text(
+          """
+          INSERT INTO ml_ledger (transaction_id, red_change, green_change, blue_change, dark_change)
+          VALUES (:t_id, 0, 0, 0, 0)
+          """
+        ), [{"t_id" : t_ids[1].id}])
+        connection.execute(sqlalchemy.text(
+          """
+          INSERT INTO potion_ledger (transaction_id, catalog_id, change)
+          VALUES 
+            (:t_id, 1, 0),
+            (:t_id, 2, 0),
+            (:t_id, 3, 0),
+            (:t_id, 4, 0),
+            (:t_id, 5, 0),
+            (:t_id, 6, 0)
+          """
+        ), [{"t_id" : t_ids[2].id}])
     log("Reset", "Burned to the Ground!")
 
     return "OK"
