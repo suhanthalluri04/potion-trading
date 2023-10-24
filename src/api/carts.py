@@ -84,7 +84,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         connection.execute(sqlalchemy.text(
           """
           INSERT INTO potion_ledger (transaction_id, catalog_id, change)
-          SELECT :t_id, catalog.id, SUM(cart_items.quantity)
+          SELECT :t_id, catalog.id, SUM(cart_items.quantity)*(-1)
           FROM catalog
           JOIN cart_items on cart_items.catalog_id = catalog.id and cart_items.cart_id = :cart_id
           GROUP BY catalog.id
