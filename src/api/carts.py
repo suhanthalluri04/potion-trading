@@ -61,11 +61,15 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
       moneyPaid = 0
       isOrderPossible = connection.execute(sqlalchemy.text(
           """
-          SELECT cart_items.catalog_id, cart_items.quantity
+          SELECT cart_items.catalog_id, cart_items.quantity 
           FROM cart_items
-          JOIN catalog ON catalog_id = catalog.id
-          JOIN potion_ledger ON potion_ledger.catalog_id = catalog.id
-          WHERE cart_id = :cart_id AND catalog.quantity < cart_items.quantity
+          JOIN catalog on catalog.id = cart_items.catalog_id
+          JOIN (
+            SELECT potion_ledger.catalog_id, SUM(change) as quantity
+            FROM potion_ledger
+            GROUP BY catalog_id 
+          ) AS quantities on quantities.catalog_id = catalog.id
+          WHERE cart_items.cart_id = 73 and quantities.quantity < cart_items.quantity
           """), [{"cart_id": cart_id }]).all()
       log("isOrderPossible", True if len(isOrderPossible) == 0 else False)  
       if len(isOrderPossible) == 0:
