@@ -69,7 +69,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             FROM potion_ledger
             GROUP BY catalog_id 
           ) AS quantities on quantities.catalog_id = catalog.id
-          WHERE cart_items.cart_id = 73 and quantities.quantity < cart_items.quantity
+          WHERE cart_items.cart_id = :cart_id and quantities.quantity < cart_items.quantity
           """), [{"cart_id": cart_id }]).all()
       log("isOrderPossible", True if len(isOrderPossible) == 0 else False)  
       if len(isOrderPossible) == 0:
