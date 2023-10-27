@@ -55,7 +55,7 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
-    #log("search page", search_page)
+    print(search_page)
     metadata_obj = sqlalchemy.MetaData()
     carts = sqlalchemy.Table('carts', metadata_obj, autoload_with= db.engine)
     cart_items = sqlalchemy.Table('cart_items', metadata_obj, autoload_with= db.engine)
