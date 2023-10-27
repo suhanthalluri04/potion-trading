@@ -100,7 +100,9 @@ def search_orders(
     )
 
     if search_page != "":
-        stmt = stmt.offset(5)
+        stmt = stmt.offset(0)
+    else:
+        stmt = stmt.offset((int(search_page)-1)*5)
 
     # filter only if name parameter is passed
     if customer_name != "" and potion_sku != "":
@@ -114,13 +116,9 @@ def search_orders(
 
     with db.engine.connect() as conn:
         result = conn.execute(stmt)
-        json = []
+        results = []
         for row in result:
-            json.append(
-          {
-                  "previous": "",
-                  "next": "",
-                  "results": [
+            results.append(
                       {
                           "line_item_id": str(row.id),
                           "item_sku": str(row.quantity) + row.sku + "s" if row.quantity > 1 else "",
@@ -128,10 +126,14 @@ def search_orders(
                           "line_item_total": row.total,
                           "timestamp": row.created_at,
                       }
-                  ],
+                    )
+        return(
+              {
+                  "previous": search_page - 1 if search_page > 1 else "",
+                  "next": search_page + 1,
+                  "results": results,
               }
-            )
-    return json
+        )
 
 
 class NewCart(BaseModel):
