@@ -55,20 +55,83 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
+    #log("search page", search_page)
+    metadata_obj = sqlalchemy.MetaData()
+    carts = sqlalchemy.Table('carts', metadata_obj, autoload_with= db.engine)
+    cart_items = sqlalchemy.Table('cart_items', metadata_obj, autoload_with= db.engine)
+    catalog = sqlalchemy.Table('catalog', metadata_obj, autoload_with= db.engine)
 
-    return {
-        "previous": "",
-        "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
-            }
-        ],
-    }
+
+
+    joined = sqlalchemy.select(
+        carts.c.id,
+        carts.c.customer_name,
+        catalog.c.sku,
+        cart_items.c.quantity,
+        carts.c.created_at,
+        (cart_items.c.quantity * catalog.c.price).label('total')
+    ).select_from(
+        carts
+        .join(cart_items, carts.c.id == cart_items.c.cart_id)
+        .join(catalog, cart_items.c.catalog_id == catalog.c.id)
+    )
+
+        
+    if sort_col is search_sort_options.customer_name:
+        order_by = joined.c.customer_name
+    elif sort_col is search_sort_options.item_sku:
+        order_by = joined.c.sku
+    elif sort_col is search_sort_options.line_item_total:
+        order_by = joined.c.total
+    elif sort_col is search_sort_options.timestamp:
+        order_by = joined.c.created_at
+    stmt = (
+        sqlalchemy.select(
+            joined.c.id,
+            joined.c.customer_name,
+            joined.c.quantity,
+            joined.c.sku,
+            joined.c.total,
+            joined.c.created_at
+        )
+        .select_from(joined)
+        .limit(5)
+        .order_by(order_by, joined.c.id)
+    )
+
+    if search_page != "":
+        stmt = stmt.offset(5)
+
+    # filter only if name parameter is passed
+    if customer_name != "" and potion_sku != "":
+        stmt = stmt.where((joined.c.customer_name.ilike(f"%{customer_name}%")) &
+                          (joined.c.sku.ilike(f"%{potion_sku}%")))
+    elif customer_name != "" and potion_sku == "":
+        stmt = stmt.where(joined.c.customer_name.ilike(f"%{customer_name}%"))
+    elif customer_name == "" and potion_sku != "":
+        stmt = stmt.where(joined.c.customer_name.ilike(f"%{potion_sku}%"))
+    
+
+    with db.engine.connect() as conn:
+        result = conn.execute(stmt)
+        json = []
+        for row in result:
+            json.append(
+          {
+                  "previous": "",
+                  "next": "",
+                  "results": [
+                      {
+                          "line_item_id": str(row.id),
+                          "item_sku": str(row.quantity) + row.sku + "s" if row.quantity > 1 else "",
+                          "customer_name": row.customer_name,
+                          "line_item_total": row.total,
+                          "timestamp": row.created_at,
+                      }
+                  ],
+              }
+            )
+    return json
 
 
 class NewCart(BaseModel):
