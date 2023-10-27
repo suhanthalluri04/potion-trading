@@ -99,7 +99,7 @@ def search_orders(
         .order_by(order_by, joined.c.id)
     )
 
-    if search_page != "":
+    if search_page == "":
         stmt = stmt.offset(0)
     else:
         stmt = stmt.offset((int(search_page)-1)*5)
@@ -130,7 +130,7 @@ def search_orders(
         return(
               {
                   "previous": search_page - 1 if search_page > 1 else "",
-                  "next": search_page + 1,
+                  "next": search_page + 1 ,
                   "results": results,
               }
         )
