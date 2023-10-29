@@ -76,7 +76,7 @@ def search_orders(
         .join(catalog, cart_items.c.catalog_id == catalog.c.id)
     )
 
-        
+    order_by = sqlalchemy.desc(joined.c.created_at)
     if sort_col is search_sort_options.customer_name:
         order_by = joined.c.customer_name
     elif sort_col is search_sort_options.item_sku:
@@ -129,8 +129,8 @@ def search_orders(
                     )
         return(
               {
-                  "previous": search_page - 1 if search_page > 1 else "",
-                  "next": search_page + 1 ,
+                  "previous": int(search_page) - 1 if int(search_page) > 1 else "",
+                  "next": int(search_page) + 1 ,
                   "results": results,
               }
         )
