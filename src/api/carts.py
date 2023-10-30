@@ -80,7 +80,7 @@ def search_orders(
         .join(catalog, cart_items.c.catalog_id == catalog.c.id)
     )
 
-    order_by = sqlalchemy.desc(joined.c.created_at)
+
     if sort_col is search_sort_options.customer_name:
         order_by = joined.c.customer_name
     elif sort_col is search_sort_options.item_sku:
@@ -100,8 +100,13 @@ def search_orders(
         )
         .select_from(joined)
         .limit(5)
-        .order_by(order_by, joined.c.id)
     )
+    
+    if search_sort_order == search_sort_order.desc:
+        stmt = stmt.order_by(sqlalchemy.desc(order_by), joined.c.id)
+    elif search_sort_order == search_sort_order.asc:
+        stmt = stmt.order_by(sqlalchemy.asc(order_by), joined.c.id)
+        
 
     if search_page == "":
         stmt = stmt.offset(0)
