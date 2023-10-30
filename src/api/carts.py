@@ -56,6 +56,8 @@ def search_orders(
     time is 5 total line items.
     """
     print(search_page)
+    print(f"The color passed in is: {search_sort_order}")
+
     if search_page == "":
         sp = 0
     else:
@@ -89,6 +91,7 @@ def search_orders(
         order_by = joined.c.total
     elif sort_col is search_sort_options.timestamp:
         order_by = joined.c.created_at
+
     stmt = (
         sqlalchemy.select(
             joined.c.id,
@@ -101,10 +104,11 @@ def search_orders(
         .select_from(joined)
         .limit(5)
     )
+
     
-    if search_sort_order == search_sort_order.desc:
+    if sort_order == search_sort_order.desc: 
         stmt = stmt.order_by(sqlalchemy.desc(order_by), joined.c.id)
-    elif search_sort_order == search_sort_order.asc:
+    elif sort_order == search_sort_order.asc:
         stmt = stmt.order_by(sqlalchemy.asc(order_by), joined.c.id)
         
 
