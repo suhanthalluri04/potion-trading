@@ -55,11 +55,13 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
-    print(search_page)
-    print(f"The color passed in is: {search_sort_order}")
+    log("Search page", search_page)
+    log("sort col", sort_col)
+    log("sort_order", sort_order)
+
 
     if search_page == "":
-        sp = 0
+        sp = 1
     else:
         sp = int(search_page)
     metadata_obj = sqlalchemy.MetaData()
