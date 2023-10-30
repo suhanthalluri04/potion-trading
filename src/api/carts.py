@@ -114,9 +114,9 @@ def search_orders(
 
     
     if sort_order == search_sort_order.desc: 
-        stmt = stmt.order_by(sqlalchemy.desc(order_by))
-    elif sort_order == search_sort_order.asc:
         stmt = stmt.order_by(sqlalchemy.asc(order_by))
+    elif sort_order == search_sort_order.asc:
+        stmt = stmt.order_by(sqlalchemy.desc(order_by))
         
 
     # filter only if name parameter is passed
