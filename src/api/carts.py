@@ -142,10 +142,11 @@ def search_orders(
                           "timestamp": row.created_at
                       }
                     )
+        log("results", results)
         return(
               {
-                  "previous": sp - 1 if sp > 1 else "",
-                  "next": sp + 1 ,
+                  "previous": str(sp - 1) if sp > 1 else "",
+                  "next": str(sp + 1) ,
                   "results": results,
               }
         )
