@@ -56,6 +56,10 @@ def search_orders(
     time is 5 total line items.
     """
     print(search_page)
+    if search_page == "":
+        sp = 0
+    else:
+        sp = int(search_page)
     metadata_obj = sqlalchemy.MetaData()
     carts = sqlalchemy.Table('carts', metadata_obj, autoload_with= db.engine)
     cart_items = sqlalchemy.Table('cart_items', metadata_obj, autoload_with= db.engine)
@@ -129,8 +133,8 @@ def search_orders(
                     )
         return(
               {
-                  "previous": int(search_page) - 1 if int(search_page) > 1 else "",
-                  "next": int(search_page) + 1 ,
+                  "previous": sp - 1 if sp > 1 else "",
+                  "next": sp + 1 ,
                   "results": results,
               }
         )
