@@ -105,17 +105,17 @@ def search_orders(
         .limit(5)
     )
 
+    if search_page == "":
+        stmt = stmt.offset(0)
+    else:
+        stmt = stmt.offset((int(search_page)-1)*5)
+
     
     if sort_order == search_sort_order.desc: 
         stmt = stmt.order_by(sqlalchemy.desc(order_by), joined.c.id)
     elif sort_order == search_sort_order.asc:
         stmt = stmt.order_by(sqlalchemy.asc(order_by), joined.c.id)
         
-
-    if search_page == "":
-        stmt = stmt.offset(0)
-    else:
-        stmt = stmt.offset((int(search_page)-1)*5)
 
     # filter only if name parameter is passed
     if customer_name != "" and potion_sku != "":
@@ -134,10 +134,10 @@ def search_orders(
             results.append(
                       {
                           "line_item_id": str(row.id),
-                          "item_sku": str(row.quantity) + row.sku + "s" if row.quantity > 1 else "",
+                          "item_sku": str(row.quantity) + " " + row.sku + ("S" if row.quantity > 1 else ""),
                           "customer_name": row.customer_name,
                           "line_item_total": row.total,
-                          "timestamp": row.created_at,
+                          "timestamp": row.created_at
                       }
                     )
         return(
