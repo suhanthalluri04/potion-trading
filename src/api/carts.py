@@ -107,9 +107,7 @@ def search_orders(
         .limit(5)
     )
 
-    if search_page == "":
-        stmt = stmt.offset(0)
-    else:
+    if search_page != "":
         stmt = stmt.offset((int(search_page)-1)*5)
 
     
@@ -126,7 +124,7 @@ def search_orders(
     elif customer_name != "" and potion_sku == "":
         stmt = stmt.where(joined.c.customer_name.ilike(f"%{customer_name}%"))
     elif customer_name == "" and potion_sku != "":
-        stmt = stmt.where(joined.c.customer_name.ilike(f"%{potion_sku}%"))
+        stmt = stmt.where(joined.c.sku.ilike(f"%{potion_sku}%"))
     
 
     with db.engine.connect() as conn:
@@ -146,7 +144,7 @@ def search_orders(
         return(
               {
                   "previous": str(sp - 1) if sp > 1 else "",
-                  "next": str(sp + 1) ,
+                  "next": str(sp + 1) if sp >= 1 else 1,
                   "results": results,
               }
         )
