@@ -123,11 +123,11 @@ def search_orders(
     # filter only if name parameter is passed
     if customer_name != "" and potion_sku != "":
         stmt = stmt.where((joined.c.customer_name.ilike(f"%{customer_name}%")) &
-                          (joined.c.sku.ilike(f"%{potion_sku}%")) & joined.c.payment == "gold card")
+                          (joined.c.sku.ilike(f"%{potion_sku}%")) & (joined.c.payment == "gold card"))
     elif customer_name != "" and potion_sku == "":
-        stmt = stmt.where(joined.c.customer_name.ilike(f"%{customer_name}%") & joined.c.payment == "gold card")
+        stmt = stmt.where(joined.c.customer_name.ilike(f"%{customer_name}%" & joined.c.payment == "gold card"))
     elif customer_name == "" and potion_sku != "":
-        stmt = stmt.where(joined.c.sku.ilike(f"%{potion_sku}%") & joined.c.payment == "gold card")
+        stmt = stmt.where(joined.c.sku.ilike(f"%{potion_sku}%" & joined.c.payment == "gold card"))
     
 
     with db.engine.connect() as conn:
