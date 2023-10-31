@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from src.api import auth
 from enum import Enum
 import sqlalchemy
+from sqlalchemy import func
 from src import database as db
 from src.discord import log
 
@@ -77,6 +78,7 @@ def search_orders(
         catalog.c.sku,
         cart_items.c.quantity,
         carts.c.created_at,
+        carts.c.payment,
         (cart_items.c.quantity * catalog.c.price).label('total')
     ).select_from(
         carts
@@ -96,12 +98,13 @@ def search_orders(
 
     stmt = (
         sqlalchemy.select(
+
             joined.c.id,
-            joined.c.customer_name,
             joined.c.quantity,
             joined.c.sku,
             joined.c.total,
-            joined.c.created_at
+            joined.c.created_at,
+            joined.c.customer_name
         )
         .select_from(joined)
         .limit(5)
@@ -112,23 +115,24 @@ def search_orders(
 
     
     if sort_order == search_sort_order.desc: 
-        stmt = stmt.order_by(sqlalchemy.asc(order_by))
-    elif sort_order == search_sort_order.asc:
         stmt = stmt.order_by(sqlalchemy.desc(order_by))
+    elif sort_order == search_sort_order.asc:
+        stmt = stmt.order_by(sqlalchemy.asc(order_by))
         
 
     # filter only if name parameter is passed
     if customer_name != "" and potion_sku != "":
         stmt = stmt.where((joined.c.customer_name.ilike(f"%{customer_name}%")) &
-                          (joined.c.sku.ilike(f"%{potion_sku}%")))
+                          (joined.c.sku.ilike(f"%{potion_sku}%")) & joined.c.payment == "gold card")
     elif customer_name != "" and potion_sku == "":
-        stmt = stmt.where(joined.c.customer_name.ilike(f"%{customer_name}%"))
+        stmt = stmt.where(joined.c.customer_name.ilike(f"%{customer_name}%") & joined.c.payment == "gold card")
     elif customer_name == "" and potion_sku != "":
-        stmt = stmt.where(joined.c.sku.ilike(f"%{potion_sku}%"))
+        stmt = stmt.where(joined.c.sku.ilike(f"%{potion_sku}%") & joined.c.payment == "gold card")
     
 
     with db.engine.connect() as conn:
         result = conn.execute(stmt)
+        row_count = result.rowcount
         results = []
         for row in result:
             results.append(
@@ -144,7 +148,7 @@ def search_orders(
         return(
               {
                   "previous": str(sp - 1) if sp > 1 else "",
-                  "next": str(sp + 1) if sp >= 1 else 1,
+                  "next": str(sp + 1) if (row_count - (sp * 5)) > 0  else "",
                   "results": results,
               }
         )
