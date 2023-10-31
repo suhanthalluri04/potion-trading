@@ -107,7 +107,6 @@ def search_orders(
             joined.c.customer_name
         )
         .select_from(joined)
-        .limit(5)
     )
 
     if search_page != "":
@@ -128,11 +127,13 @@ def search_orders(
         stmt = stmt.where((joined.c.customer_name.ilike(f"%{customer_name}%") & (joined.c.payment == "gold card")))
     elif customer_name == "" and potion_sku != "":
         stmt = stmt.where((joined.c.sku.ilike(f"%{potion_sku}%") & (joined.c.payment == "gold card")))
-    
+
+    stmtFiltered = stmt.limit(5)
 
     with db.engine.connect() as conn:
-        result = conn.execute(stmt)
-        row_count = result.rowcount
+        result = conn.execute(stmtFiltered)
+        row_count = conn.execute(stmt).rowcount
+        log("Row_count",row_count)
         results = []
         for row in result:
             results.append(
