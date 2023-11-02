@@ -73,7 +73,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
       for barrel in wholesale_catalog:
         print(barrel.price, currgold)
         
-        if barrel.price <= currgold and barrel.ml_per_barrel <= 500:
+        if barrel.price <= currgold:
             currgold -= barrel.price
             plan.append(
               {
