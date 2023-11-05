@@ -63,89 +63,68 @@ def get_bottle_plan():
     plan = []
     with db.engine.begin() as connection:
       result = connection.execute(sqlalchemy.text(
-         """SELECT SUM(red_change) num_red_ml, SUM(blue_change)num_blue_ml, SUM(green_change) num_green_ml 
-            FROM ml_ledger"""))
+         """SELECT SUM(red_change) num_red_ml, SUM(blue_change)num_blue_ml, SUM(green_change) num_green_ml, 
+            SUM(dark_change) num_dark_ml FROM ml_ledger"""))
       catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
+      numPots = connection.execute(sqlalchemy.text("SELECT SUM(change) as pots FROM potion_ledger")).scalar_one()
+      SpaceLeft = 300 - numPots
+      amntEach = SpaceLeft // 6
       first_row = result.first()
-      mlList = [first_row.num_red_ml, first_row.num_green_ml, first_row.num_blue_ml]
+      mlList = [first_row.num_red_ml, first_row.num_green_ml, first_row.num_blue_ml, first_row.num_dark_ml]
       #leave extra for multicolored potions
       for i in range(len(mlList)):
          if mlList[i] > 200:
             mlList[i] -= 100
-      # if qtyRed >= 1 and qtyBlue >= 1:
-      #   quantity = min(qtyRed, qtyBlue)
-      #   plan.append(
-      #           {
-      #               "potion_type": [50, 0, 50, 0],
-      #               "quantity": quantity
-      #           }
-      #   )
-      #ONLY BOTTLE NON full rbg
-      for potion_type in catalog:
-         potion_type = potion_type[0]
-         if potion_type[0] != 100 and \
-         potion_type[1] != 100 and \
-         potion_type[2] != 100:
-          if mlList[0] >= potion_type[0] and \
-          mlList[1] >= potion_type[1] and \
-          mlList[2] >= potion_type[2]:
-            qtyBasedonML = []
-            for i in range(len(potion_type)): 
-              if potion_type[i] != 0:
-                  qtyBasedonML.append(mlList[i] // potion_type[i])
-            quantity = min(qtyBasedonML)   
-            plan.append(
-                    {
-                        "potion_type": potion_type,
-                        "quantity": quantity
-                    }
-            )
-            for k in range(len(mlList)):
-                mlList[k] -= potion_type[k] * quantity
-      #only full RBG potions
-      for potion_type in catalog:
-         print(potion_type)
-         potion_type = potion_type[0]
-         if potion_type[0] == 100 or\
-         potion_type[1] == 100 or \
-         potion_type[2] == 100:
-          if mlList[0] >= potion_type[0] and\
-          mlList[1] >= potion_type[1] and \
-          mlList[2] >= potion_type[2]:
-            qtyBasedonML = []
-            for i in range(len(potion_type)): 
-              if potion_type[i] != 0:
-                  print(i, potion_type[i], mlList[i])
-                  qtyBasedonML.append(mlList[i] // potion_type[i])
-            quantity = min(qtyBasedonML)   
-            plan.append(
-                    {
-                        "potion_type": potion_type,
-                        "quantity": quantity
-                    }
-            )
-            for k in range(len(mlList)):
-                mlList[k] -= potion_type[k] * quantity
-      # if qtyRed > 0:
-      #   plan.append(
-      #           {
-      #               "potion_type": [100, 0, 0, 0],
-      #               "quantity": 1,
-      #           }
-      #   )
-      # if qtyBlue > 0:
-      #   plan.append(
-      #           {
-      #               "potion_type": [0, 0, 100, 0],
-      #               "quantity": qtyBlue,
-      #           }
-      #   )
-      # if qtyGreen > 0:
-      #   plan.append(
-      #           {
-      #               "potion_type": [0, 100, 0, 0],
-      #               "quantity": qtyGreen,
-      #           }
-      #   )
+      if SpaceLeft > 0:
+        for potion_type in catalog:
+          potion_type = potion_type[0]
+          if potion_type[0] != 100 and \
+          potion_type[1] != 100 and \
+          potion_type[2] != 100:
+            if mlList[0] >= potion_type[0] and \
+            mlList[1] >= potion_type[1] and \
+            mlList[2] >= potion_type[2]:
+              qtyBasedonML = []
+              for i in range(len(potion_type)): 
+                if potion_type[i] != 0:
+                    qtyBasedonML.append(mlList[i] // potion_type[i])
+              quantity = min(qtyBasedonML) if (min(qtyBasedonML) <= amntEach) else amntEach
+              if quantity > 0: 
+                plan.append(
+                        {
+                            "potion_type": potion_type,
+                            "quantity": quantity
+                        }
+                )
+              for k in range(len(mlList)):
+                  mlList[k] -= potion_type[k] * quantity
+        #only full RBG potions
+        for potion_type in catalog:
+          print(potion_type)
+          potion_type = potion_type[0]
+          if potion_type[0] == 100 or\
+          potion_type[1] == 100 or \
+          potion_type[2] == 100 or \
+            potion_type[3] == 100:
+            if mlList[0] >= potion_type[0] and\
+            mlList[1] >= potion_type[1] and \
+            mlList[2] >= potion_type[2] and \
+            mlList[3] >= potion_type[3]:
+              qtyBasedonML = []
+              for i in range(len(potion_type)): 
+                if potion_type[i] != 0:
+                    print(i, potion_type[i], mlList[i])
+                    qtyBasedonML.append(mlList[i] // potion_type[i])
+              quantity = min(qtyBasedonML) 
+              quantity = min(qtyBasedonML) if (min(qtyBasedonML) <= amntEach) else amntEach
+              if quantity > 0: 
+                plan.append(
+                        {
+                            "potion_type": potion_type,
+                            "quantity": quantity
+                        }
+                )
+              for k in range(len(mlList)):
+                  mlList[k] -= potion_type[k] * quantity
     log("Bottling Plan Log:", plan)
     return plan

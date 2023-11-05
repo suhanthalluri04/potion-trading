@@ -56,9 +56,6 @@ def search_orders(
     Your results must be paginated, the max results you can return at any
     time is 5 total line items.
     """
-    log("Search page", search_page)
-    log("sort col", sort_col)
-    log("sort_order", sort_order)
 
 
     if search_page == "":
@@ -133,7 +130,6 @@ def search_orders(
     with db.engine.connect() as conn:
         result = conn.execute(stmtFiltered)
         row_count = conn.execute(stmt).rowcount
-        log("Row_count",row_count)
         results = []
         for row in result:
             results.append(
@@ -145,7 +141,6 @@ def search_orders(
                           "timestamp": row.created_at
                       }
                     )
-        log("results", results)
         return(
               {
                   "previous": str(sp - 1) if sp > 1 else "",
