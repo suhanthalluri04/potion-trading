@@ -65,15 +65,16 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
     log("Wholesale Catalog Log:", wholesale_catalog)
     with db.engine.begin() as connection:
-      greenBought = False
       currgold = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM gold_ledger")).scalar_one()
+      currML = connection.execute(sqlalchemy.text(
+          """SELECT SUM(red_change) num_red_ml, SUM(blue_change)num_blue_ml, SUM(green_change) num_green_ml, 
+              SUM(dark_change) num_dark_ml FROM ml_ledger""")).first()
+      mlList = [currML.num_red_ml, currML.num_green_ml, currML.num_blue_ml, currML.num_dark_ml]
       plan = []
-      #buy mini barrels
-      # while currgold >= 60:
       for barrel in wholesale_catalog:
         print(barrel.price, currgold)
         
-        if barrel.price <= currgold:
+        if barrel.price <= currgold and mlList[indexType(barrel.potion_type)] < 5000:
             currgold -= barrel.price
             plan.append(
               {
@@ -83,3 +84,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             )
       log("Planned Barrel Buy Log:", plan)
       return plan
+
+
+def indexType(type):
+   for i in range(len(type)):
+      if type[i] == 1:
+        return i
