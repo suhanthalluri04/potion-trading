@@ -68,7 +68,9 @@ def get_bottle_plan():
       catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
       numPots = connection.execute(sqlalchemy.text("SELECT SUM(change) as pots FROM potion_ledger")).scalar_one()
       SpaceLeft = 300 - numPots
-      amntEach = SpaceLeft // 6
+      amntEach = SpaceLeft // 5
+      log("NumPots, SpaceLeft, NumEach", (numPots, SpaceLeft, amntEach))
+      log("Amnt After Bottle", numPots + amntEach*5)
       first_row = result.first()
       mlList = [first_row.num_red_ml, first_row.num_green_ml, first_row.num_blue_ml, first_row.num_dark_ml]
       #leave extra for multicolored potions
@@ -78,9 +80,11 @@ def get_bottle_plan():
       if SpaceLeft > 0:
         for potion_type in catalog:
           potion_type = potion_type[0]
-          if potion_type[0] != 100 and \
+          if potion_type != [50,50,0,0] and\
+          potion_type[0] != 100 and \
           potion_type[1] != 100 and \
-          potion_type[2] != 100:
+          potion_type[2] != 100 and \
+          potion_type[3] != 100:
             if mlList[0] >= potion_type[0] and \
             mlList[1] >= potion_type[1] and \
             mlList[2] >= potion_type[2]:
@@ -90,6 +94,7 @@ def get_bottle_plan():
                     qtyBasedonML.append(mlList[i] // potion_type[i])
               quantity = min(qtyBasedonML) if (min(qtyBasedonML) <= amntEach) else amntEach
               if quantity > 0: 
+                print(potion_type[2])
                 plan.append(
                         {
                             "potion_type": potion_type,
@@ -100,7 +105,6 @@ def get_bottle_plan():
                   mlList[k] -= potion_type[k] * quantity
         #only full RBG potions
         for potion_type in catalog:
-          print(potion_type)
           potion_type = potion_type[0]
           if potion_type[0] == 100 or\
           potion_type[1] == 100 or \
@@ -113,11 +117,11 @@ def get_bottle_plan():
               qtyBasedonML = []
               for i in range(len(potion_type)): 
                 if potion_type[i] != 0:
-                    print(i, potion_type[i], mlList[i])
                     qtyBasedonML.append(mlList[i] // potion_type[i])
               quantity = min(qtyBasedonML) 
               quantity = min(qtyBasedonML) if (min(qtyBasedonML) <= amntEach) else amntEach
               if quantity > 0: 
+                print(potion_type)
                 plan.append(
                         {
                             "potion_type": potion_type,
