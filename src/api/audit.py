@@ -18,7 +18,7 @@ def get_inventory():
     with db.engine.begin() as connection:
       totalGold = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM gold_ledger")).scalar_one()
       totalPot = connection.execute(sqlalchemy.text("SELECT SUM(change) FROM potion_ledger")).scalar_one()
-      totalml = connection.execute(sqlalchemy.text("SELECT SUM(red_change + blue_change + green_change) FROM ml_ledger")).scalar_one()
+      totalml = connection.execute(sqlalchemy.text("SELECT SUM(red_change + blue_change + green_change + dark_change) FROM ml_ledger")).scalar_one()
       log("Audit: Current Gold", f"Gold: {totalGold}")
     return {"number_of_potions": totalPot, "ml_in_barrels": totalml, "gold": totalGold}
 
