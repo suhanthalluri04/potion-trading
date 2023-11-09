@@ -68,7 +68,7 @@ def get_bottle_plan():
       catalog = connection.execute(sqlalchemy.text("SELECT potion_type FROM catalog")).all()
       numPots = connection.execute(sqlalchemy.text("SELECT SUM(change) as pots FROM potion_ledger")).scalar_one()
       SpaceLeft = 300 - numPots
-      amntEach = SpaceLeft // 5
+      amntEach = SpaceLeft // 6
       log("NumPots, SpaceLeft, NumEach", (numPots, SpaceLeft, amntEach))
       log("Amnt After Bottle", numPots + amntEach*5)
       first_row = result.first()
@@ -80,8 +80,7 @@ def get_bottle_plan():
       if SpaceLeft > 0:
         for potion_type in catalog:
           potion_type = potion_type[0]
-          if potion_type != [50,50,0,0] and\
-          potion_type[0] != 100 and \
+          if potion_type[0] != 100 and \
           potion_type[1] != 100 and \
           potion_type[2] != 100 and \
           potion_type[3] != 100:
